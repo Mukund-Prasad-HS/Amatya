@@ -6,3 +6,4 @@ faiss-cpu
 tenacity
 python-dotenv
 langchain-google-genai
+langchain-community
