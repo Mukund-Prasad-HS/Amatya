@@ -164,7 +164,7 @@ def main():
             with st.chat_message("user"):
                 st.write(user_question)
 
-            with st.spinner("Thinking..."):
+            with st.spinner("Thinking...."):
                 try:
                     response = user_input_with_retry(user_question, st.session_state.vector_store)
                     st.session_state.chat_history.append({"role": "assistant", "content": response})

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with PDF</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>AI Amatya 💬📚</h1>
+    </header>
+    <main>
+        <section id="upload-section">
+            <h2>Upload PDFs</h2>
+            <form id="upload-form">
+                <input type="file" name="pdf" accept=".pdf" multiple required>
+                <button type="submit">Process PDFs</button>
+            </form>
+        </section>
+        <section id="chat-section">
+            <h2>Chat</h2>
+            <div id="chat-history"></div>
+            <form id="question-form">
+                <input type="text" id="question-input" placeholder="Ask a question about your PDFs" required>
+                <button type="submit">Ask</button>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
