@@ -295,11 +295,11 @@ def main():
     st.markdown("Created with ❤️ by InnovAIt-ON")
 
     # Add a section for feedback or bug reporting
-    st.subheader("Feedback")
-    feedback = st.text_area("We'd love to hear your thoughts! Please leave any feedback or report any bugs here:")
-    if st.button("Submit Feedback"):
+   # st.subheader("Feedback")
+    #feedback = st.text_area("We'd love to hear your thoughts! Please leave any feedback or report any bugs here:")
+    #if st.button("Submit Feedback"):
         # Here you would typically send this feedback to a database or email
-        st.success("Thank you for your feedback!")
+    #    st.success("Thank you for your feedback!")
 
 
 if __name__ == "__main__":
