@@ -343,6 +343,7 @@ def main():
         st.session_state.chat_history = []
         st.experimental_rerun()
     #Feedback section to be included- Amogh M
+    #Demo
     st.markdown("---")
     st.markdown("Created with ❤️ by InnovAIt-ON")
 
