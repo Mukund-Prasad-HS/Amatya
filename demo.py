@@ -341,7 +341,7 @@ def main():
 
     if st.button("Clear Chat"):
         st.session_state.chat_history = []
-        st.experimental_rerun()
+        st.rerun()
     #Feedback section to be included- Amogh M
     st.markdown("---")
     st.markdown("Created with ❤️ by InnovAIt-ON")
