@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from werkzeug.utils import secure_filename
+import os
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import os
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import google.generativeai as genai
 from langchain.vectorstores import FAISS
@@ -12,7 +12,6 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import tempfile
 import concurrent.futures
-import time
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 app = Flask(__name__)
@@ -22,30 +21,18 @@ load_dotenv()
 os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-# Global variable to store the vector store
-global_vector_store = None
-
 # Increase chunk size and overlap for larger PDFs
 CHUNK_SIZE = 1000000
 CHUNK_OVERLAP = 100000
 
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'pdf'}
 
-class RateLimiter:
-    def __init__(self, max_calls, period):
-        self.max_calls = max_calls
-        self.period = period
-        self.calls = []
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-    def __call__(self, f):
-        def wrapper(*args, **kwargs):
-            now = time.time()
-            self.calls = [c for c in self.calls if c > now - self.period]
-            if len(self.calls) >= self.max_calls:
-                raise Exception("Rate limit exceeded. Please try again later.")
-            self.calls.append(now)
-            return f(*args, **kwargs)
 
-        return wrapper
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def get_pdf_text(pdf_file):
@@ -53,16 +40,6 @@ def get_pdf_text(pdf_file):
     text = ""
     for page in pdf_reader.pages:
         text += page.extract_text()
-    return text
-
-
-def process_pdf(pdf_file):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        tmp_file.write(pdf_file.read())
-        tmp_file_path = tmp_file.name
-
-    text = get_pdf_text(tmp_file_path)
-    os.unlink(tmp_file_path)
     return text
 
 
@@ -80,7 +57,18 @@ def get_vector_store(text_chunks):
 
 def get_conversational_chain():
     prompt_template = """
-    Answer the question based on the context provided. If the answer is not contained within the context, say "I don't have enough information to answer that question."
+    You are an AI assistant capable of handling a wide range of queries. Answer the question based on the following guidelines:
+
+    1. If the answer is in the provided context, use that information.
+    2. For general knowledge questions not in the context, use your built-in knowledge.
+    3. For resume-related questions, analyze the context and provide informed suggestions.
+    4. For programming questions, provide explanations or code snippets as needed.
+    5. For research paper analysis:
+       - Summarize key findings and methodologies
+       - Explain complex scientific concepts
+       - Identify the main contributions of the paper
+       - Suggest related papers or further areas of research
+    6. Always indicate the basis of your answer (context, general knowledge, analysis, programming expertise, or research paper analysis).
 
     Context: {context}
 
@@ -96,7 +84,6 @@ def get_conversational_chain():
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-@RateLimiter(max_calls=10, period=60)  # 10 calls per minute
 def user_input_with_retry(user_question, vector_store):
     docs = vector_store.similarity_search(user_question)
     chain = get_conversational_chain()
@@ -104,6 +91,7 @@ def user_input_with_retry(user_question, vector_store):
         {"input_documents": docs, "question": user_question},
         return_only_outputs=True
     )
+
     return response["output_text"]
 
 
@@ -113,42 +101,41 @@ def index():
 
 
 @app.route('/upload', methods=['POST'])
-def upload_pdfs():
-    global global_vector_store
-    if 'pdf' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-    files = request.files.getlist('pdf')
-    if not files or files[0].filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'})
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'})
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
 
-    texts = []
-    for file in files:
-        text = process_pdf(file)
-        texts.append(text)
+        text = get_pdf_text(filepath)
+        text_chunks = get_text_chunks(text)
+        vector_store = get_vector_store(text_chunks)
 
-    raw_text = "\n".join(texts)
-    text_chunks = get_text_chunks(raw_text)
-    global_vector_store = get_vector_store(text_chunks)
+        # Save vector_store to a file or database for later use
+        vector_store.save_local("vector_store")
 
-    return jsonify({'message': 'PDFs processed successfully'}), 200
+        return jsonify({'success': 'File uploaded and processed successfully'})
+    return jsonify({'error': 'File type not allowed'})
 
 
 @app.route('/ask', methods=['POST'])
 def ask_question():
-    global global_vector_store
-    data = request.get_json()
-    question = data.get('question')
-    if not question:
-        return jsonify({'error': 'No question provided'}), 400
+    data = request.json
+    question = data['question']
 
-    if not global_vector_store:
-        return jsonify({'error': 'No PDFs processed yet'}), 400
+    # Load vector_store from file or database
+    vector_store = FAISS.load_local("vector_store")
 
     try:
-        response = user_input_with_retry(question, global_vector_store)
-        return jsonify({'response': response}), 200
+        answer = user_input_with_retry(question, vector_store)
+        return jsonify({'answer': answer})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)})
 
 
 if __name__ == '__main__':

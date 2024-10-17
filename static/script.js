@@ -1,11 +1,9 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const uploadForm = document.getElementById('upload-form');
-    const questionForm = document.getElementById('question-form');
-    const chatHistory = document.getElementById('chat-history');
-
-    uploadForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(uploadForm);
+function uploadFile() {
+    const fileInput = document.getElementById('file-upload');
+    const file = fileInput.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
 
         fetch('/upload', {
             method: 'POST',
@@ -13,54 +11,47 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                alert(data.error);
+            if (data.success) {
+                alert('File uploaded and processed successfully');
             } else {
-                alert(data.message);
+                alert('Error: ' + data.error);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while uploading PDFs');
-        });
-    });
+        .catch(error => console.error('Error:', error));
+    } else {
+        alert('Please select a file to upload');
+    }
+}
 
-    questionForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const questionInput = document.getElementById('question-input');
-        const question = questionInput.value;
-
-        // Add user message to chat history
-        addMessageToChat('User', question);
-
+function askQuestion() {
+    const userInput = document.getElementById('user-input');
+    const question = userInput.value.trim();
+    if (question) {
+        addMessageToChat('You: ' + question);
         fetch('/ask', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({question: question})
+            body: JSON.stringify({ question: question })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.error) {
-                addMessageToChat('Error', data.error);
+            if (data.answer) {
+                addMessageToChat('AI: ' + data.answer);
             } else {
-                addMessageToChat('Assistant', data.response);
+                addMessageToChat('AI: Error - ' + data.error);
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            addMessageToChat('Error', 'An error occurred while processing your question');
-        });
-
-        questionInput.value = '';
-    });
-
-    function addMessageToChat(sender, message) {
-        const messageElement = document.createElement('div');
-        messageElement.classList.add('message', sender.toLowerCase() + '-message');
-        messageElement.textContent = `${sender}: ${message}`;
-        chatHistory.appendChild(messageElement);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
+        .catch(error => console.error('Error:', error));
+        userInput.value = '';
     }
-});
+}
+
+function addMessageToChat(message) {
+    const chatHistory = document.getElementById('chat-history');
+    const messageElement = document.createElement('p');
+    messageElement.textContent = message;
+    chatHistory.appendChild(messageElement);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}

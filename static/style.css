@@ -3,60 +3,49 @@ body {
     line-height: 1.6;
     margin: 0;
     padding: 0;
+    background-color: #f4f4f4;
 }
 
-header {
-    background-color: #4CAF50;
-    color: white;
-    text-align: center;
-    padding: 1rem;
+.container {
+    width: 80%;
+    margin: auto;
+    overflow: hidden;
+    padding: 20px;
 }
 
-main {
-    padding: 2rem;
+h1, h2 {
+    color: #333;
 }
 
-section {
-    margin-bottom: 2rem;
+.upload-section, .chat-section {
+    background: #fff;
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 5px;
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-}
-
-input, button {
-    margin-top: 0.5rem;
+input[type="file"], input[type="text"] {
+    width: 70%;
+    padding: 10px;
+    margin-right: 10px;
 }
 
 button {
-    background-color: #4CAF50;
-    color: white;
+    padding: 10px 15px;
+    background: #333;
+    color: #fff;
     border: none;
-    padding: 0.5rem;
     cursor: pointer;
 }
 
 button:hover {
-    background-color: #45a049;
+    background: #555;
 }
 
 #chat-history {
-    border: 1px solid #ddd;
-    padding: 1rem;
     height: 300px;
-    overflow-y: auto;
-    margin-bottom: 1rem;
-}
-
-.message {
-    margin-bottom: 0.5rem;
-}
-
-.user-message {
-    color: blue;
-}
-
-.assistant-message {
-    color: green;
+    overflow-y: scroll;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
 }

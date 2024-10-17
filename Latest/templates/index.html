@@ -2,9 +2,59 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Assistant</title>
 </head>
 <body>
+    <h1>AI Document Assistant 💬📚</h1>
+    <form method="post" action="/" enctype="multipart/form-data">
+        <input type="text" name="user_name" placeholder="Your Name" value="{{ session.user_name }}">
+        <input type="file" name="file" multiple>
+        <button type="submit">Process Documents</button>
+        <input type="checkbox" name="dark_mode" {% if session.dark_mode %}checked{% endif %}> Dark Mode
+    </form>
 
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+
+    <h2>Chat</h2>
+    <form method="post" action="/chat">
+        <textarea name="user_question" rows="4" cols="50" placeholder="Ask a question about your documents or any other topic"></textarea>
+        <button type="submit">Send</button>
+    </form>
+
+    <div>
+        {% for message in session.chat_history %}
+        <strong>{{ message.role }}</strong>: {{ message.content }}<br>
+        {% endfor %}
+    </div>
+
+    <form action="/clear_chat">
+        <button type="submit">Clear Chat</button>
+    </form>
+
+    <h2>Document Analysis</h2>
+    <form action="/summarize">
+        <button type="submit">Summarize Key Points</button>
+    </form>
+    <form action="/identify_topics">
+        <button type="submit">Identify Main Topics</button>
+    </form>
+    <form action="/suggest_reading">
+        <button type="submit">Suggest Further Reading</button>
+    </form>
+
+    <h2>Feedback</h2>
+    <form method="post" action="/feedback">
+        <textarea name="feedback" rows="4" cols="50" placeholder="We'd love to hear your thoughts!"></textarea>
+        <button type="submit">Submit Feedback</button>
+    </form>
 </body>
 </html>

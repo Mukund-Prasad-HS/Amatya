@@ -44,31 +44,40 @@ def get_vector_store(text_chunks):
 
 def get_conversational_chain():
     prompt_template = """
-    Answer the question based on the context provided. If the answer is not contained within the context, say "I don't have enough information to answer that question."
+        You are an expert at extracting information and answering questions based on the provided context. Answer the question based on the context provided. If the answer is not contained within the context, say "I don't have enough information to answer that question."
 
-    Context: {context}
+        Context: {context}
 
-    Question: {question}
+        Question: {question}
 
-    Answer:
-    """
-
+        Answer:
+        """
     model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
 
 
+def get_general_qa_model():
+    return ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+
+
 def user_input(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
     docs = new_db.similarity_search(user_question)
-    chain = get_conversational_chain()
-    response = chain(
+    pdf_chain = get_conversational_chain()
+    pdf_response = pdf_chain(
         {"input_documents": docs, "question": user_question},
         return_only_outputs=True
     )
-    return response["output_text"]
+
+    if "I don't have enough information to answer that question" in pdf_response["output_text"]:
+        model = get_general_qa_model()
+        general_response = model({"messages": [{"role": "user", "content": user_question}]})
+        return general_response["text"]
+    else:
+        return pdf_response["output_text"]
 
 
 def main():
@@ -120,7 +129,7 @@ def main():
             st.write(f"{message['content']}")
 
     # User input
-    user_question = st.chat_input("Ask a question about your PDFs")
+    user_question = st.chat_input("Ask a question about your PDFs or anything else")
     if user_question:
         st.session_state.chat_history.append({"role": "user", "content": user_question})
         with st.chat_message("user"):
@@ -141,7 +150,6 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown("Created with ❤️ by Your Name | [GitHub](https://github.com/yourusername)")
-
 
 if __name__ == "__main__":
     main()
